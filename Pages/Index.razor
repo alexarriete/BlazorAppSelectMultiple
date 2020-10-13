@@ -1,0 +1,63 @@
+﻿@page "/"
+@inject IJSRuntime JSRuntime;
+@using BlazorAppSelectMultiple.Data
+
+
+<h1>Select Multiple Example</h1>
+
+
+<div class="col-md-5">
+    <label>Cities</label>
+    <select @ref="MySelect" class="form-control" id="slt" @onchange="OnChangeCitiesSelected">
+        <option value="0" style="display:none">@CitiesSelected</option>
+        @foreach (OptionElement optionElement in OptionElements)
+        {
+            <option value="@optionElement.Value" class="@((optionElement.Active? "unselected" : "selected"))" >@optionElement.Name</option>
+        }
+
+    </select>
+</div>
+
+<style>
+    .selected{
+        color: lightgray;
+    }
+    .unselected{
+        color:black
+     }
+</style>
+
+@code{
+
+    private List<OptionElement> OptionElements = OptionElement.GetElements();
+    private string CitiesSelected = "Select cities";
+
+    private List<string> SelectCityList = new List<string>();
+
+
+
+    private ElementReference MySelect { get; set; }
+
+    private async Task OnChangeCitiesSelected()
+    {
+        string elementSelected = (await JSRuntime.InvokeAsync<object>("ResetValue.GetSelectedElement", "slt")).ToString();
+
+        await Task.Run(() => CreateMultipleValue(elementSelected));
+
+        await JSRuntime.InvokeAsync<object>("ResetValue.SelectElement", MySelect);
+    }
+
+
+    private void CreateMultipleValue(string elementSelected)
+    {
+        OptionElement optionElement = OptionElements.FirstOrDefault(x => x.Name == elementSelected);
+        if (optionElement != null)
+        {
+            optionElement.Active = !optionElement.Active;
+
+        }
+        CitiesSelected = OptionElements.Any(x => !x.Active) ? string.Join(" , ", OptionElements.Where(x => !x.Active).Select(n=>n.Name)) : "Select cities";
+        OptionElements = OptionElements.OrderByDescending(x => x.Active).ThenBy(x => x.Name).ToList();
+    }
+
+}
